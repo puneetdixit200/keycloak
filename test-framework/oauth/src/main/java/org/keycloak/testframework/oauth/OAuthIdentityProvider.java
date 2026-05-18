@@ -2,10 +2,13 @@ package org.keycloak.testframework.oauth;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.keycloak.common.crypto.CryptoIntegration;
 import org.keycloak.common.util.KeyUtils;
@@ -36,6 +39,7 @@ public class OAuthIdentityProvider {
 
     private final OAuthIdentityProviderKeys keys;
     private final OAuthIdentityProviderConfigBuilder.OAuthIdentityProviderConfiguration config;
+    private final Set<String> contexts = new HashSet<>();
 
     private int keysRequestCount = 0;
 
@@ -46,8 +50,11 @@ public class OAuthIdentityProvider {
         }
 
         this.httpServer = httpServer;
-        httpServer.createContext("/idp/.well-known/openid-configuration", new WellKnownHandler());
-        httpServer.createContext("/idp/jwks", new JwksHttpHandler());
+        createWellKnownContext(URI.create(config.issuer()).getPath(), config.issuer(), config.jwksUri());
+        if (config.kubernetesApiServerIssuer() != null) {
+            createWellKnownContext(URI.create(config.kubernetesApiServerIssuer()).getPath(), config.issuer(), config.jwksUri());
+        }
+        createContext(URI.create(config.jwksUri()).getPath(), new JwksHttpHandler());
 
         keys = new OAuthIdentityProviderKeys(config);
     }
@@ -73,16 +80,35 @@ public class OAuthIdentityProvider {
     }
 
     public void close() {
-        httpServer.removeContext("/idp/.well-known/openid-configuration");
-        httpServer.removeContext("/idp/jwks");
+        contexts.forEach(httpServer::removeContext);
+        contexts.clear();
+    }
+
+    private void createWellKnownContext(String issuerPath, String issuer, String jwksUri) {
+        createContext(issuerPath + "/.well-known/openid-configuration", new WellKnownHandler(issuer, jwksUri));
+    }
+
+    private void createContext(String path, HttpHandler handler) {
+        if (contexts.add(path)) {
+            httpServer.createContext(path, handler);
+        }
     }
 
     public class WellKnownHandler implements HttpHandler {
 
+        private final String issuer;
+        private final String jwksUri;
+
+        public WellKnownHandler(String issuer, String jwksUri) {
+            this.issuer = issuer;
+            this.jwksUri = jwksUri;
+        }
+
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             OIDCConfigurationRepresentation oidcConfig = new OIDCConfigurationRepresentation();
-            oidcConfig.setJwksUri("http://127.0.0.1:8500/idp/jwks");
+            oidcConfig.setIssuer(issuer);
+            oidcConfig.setJwksUri(jwksUri);
             String oidcConfigString = JsonSerialization.writeValueAsString(oidcConfig);
 
             exchange.getResponseHeaders().add("Content-Type", "application/json");

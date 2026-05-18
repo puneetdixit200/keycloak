@@ -4,6 +4,9 @@ public class OAuthIdentityProviderConfigBuilder {
 
     private Mode mode = Mode.DEFAULT;
     private boolean jwkUse = true;
+    private String issuer = "http://127.0.0.1:8500/idp";
+    private String jwksUri = "http://127.0.0.1:8500/idp/jwks";
+    private String kubernetesApiServerIssuer;
 
     public OAuthIdentityProviderConfigBuilder spiffe() {
         mode = Mode.SPIFFE;
@@ -20,11 +23,26 @@ public class OAuthIdentityProviderConfigBuilder {
         return this;
     }
 
-    public OAuthIdentityProviderConfiguration build() {
-        return new OAuthIdentityProviderConfiguration(mode, jwkUse);
+    public OAuthIdentityProviderConfigBuilder issuer(String issuer) {
+        this.issuer = issuer;
+        return this;
     }
 
-    public record OAuthIdentityProviderConfiguration(Mode mode, boolean jwkUse) {
+    public OAuthIdentityProviderConfigBuilder jwksUri(String jwksUri) {
+        this.jwksUri = jwksUri;
+        return this;
+    }
+
+    public OAuthIdentityProviderConfigBuilder kubernetesApiServerIssuer(String kubernetesApiServerIssuer) {
+        this.kubernetesApiServerIssuer = kubernetesApiServerIssuer;
+        return this;
+    }
+
+    public OAuthIdentityProviderConfiguration build() {
+        return new OAuthIdentityProviderConfiguration(mode, jwkUse, issuer, jwksUri, kubernetesApiServerIssuer);
+    }
+
+    public record OAuthIdentityProviderConfiguration(Mode mode, boolean jwkUse, String issuer, String jwksUri, String kubernetesApiServerIssuer) {
     }
 
     public enum Mode {

@@ -20,6 +20,22 @@ public class KubernetesIdentityProviderConfig extends IdentityProviderModel impl
         return getConfig().get(ISSUER);
     }
 
+    public boolean isUseDynamicIssuerResolution() {
+        return Boolean.parseBoolean(getConfig().getOrDefault(KubernetesConstants.USE_DYNAMIC_ISSUER_RESOLUTION, Boolean.TRUE.toString()));
+    }
+
+    public void setUseDynamicIssuerResolution(boolean useDynamicIssuerResolution) {
+        getConfig().put(KubernetesConstants.USE_DYNAMIC_ISSUER_RESOLUTION, String.valueOf(useDynamicIssuerResolution));
+    }
+
+    public boolean isIncludeServiceAccountToken() {
+        return Boolean.parseBoolean(getConfig().getOrDefault(KubernetesConstants.INCLUDE_SERVICE_ACCOUNT_TOKEN, Boolean.FALSE.toString()));
+    }
+
+    public void setIncludeServiceAccountToken(boolean includeServiceAccountToken) {
+        getConfig().put(KubernetesConstants.INCLUDE_SERVICE_ACCOUNT_TOKEN, String.valueOf(includeServiceAccountToken));
+    }
+
     public int getAllowedClockSkew() {
         String allowedClockSkew = getConfig().get(ALLOWED_CLOCK_SKEW);
         if (allowedClockSkew == null || allowedClockSkew.isEmpty()) {

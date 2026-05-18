@@ -88,13 +88,8 @@ public class FederatedJWTClientAuthenticator extends AbstractClientAuthenticator
                 return;
             }
 
-            ClientAssertionIdentityProviderFactory.ClientAssertionStrategy strategy = findStrategy(clientAssertionState.getClientAssertionType());
-            if (strategy == null) {
-                return;
-            }
-
-            ClientAssertionIdentityProviderFactory.LookupResult lookup = strategy.lookup(context);
-            if (lookup == null || lookup.identityProviderModel() == null || !lookup.identityProviderModel().isEnabled() || lookup.clientModel() == null) {
+            ClientAssertionIdentityProviderFactory.LookupResult lookup = lookup(context, clientAssertionState.getClientAssertionType());
+            if (lookup == null) {
                 return;
             }
 
@@ -115,8 +110,19 @@ public class FederatedJWTClientAuthenticator extends AbstractClientAuthenticator
         }
     }
 
-    private ClientAssertionIdentityProviderFactory.ClientAssertionStrategy findStrategy(String assertionType) {
-        return strategies.stream().filter(c -> c.isSupportedAssertionType(assertionType)).findFirst().orElse(null);
+    private ClientAssertionIdentityProviderFactory.LookupResult lookup(ClientAuthenticationFlowContext context, String assertionType) throws Exception {
+        for (ClientAssertionIdentityProviderFactory.ClientAssertionStrategy strategy : strategies) {
+            if (!strategy.isSupportedAssertionType(assertionType)) {
+                continue;
+            }
+
+            ClientAssertionIdentityProviderFactory.LookupResult lookup = strategy.lookup(context);
+            if (lookup != null && lookup.identityProviderModel() != null && lookup.identityProviderModel().isEnabled() && lookup.clientModel() != null) {
+                return lookup;
+            }
+        }
+
+        return null;
     }
 
     private ClientAssertionIdentityProvider<?> getClientAssertionIdentityProvider(KeycloakSession session, IdentityProviderModel identityProviderModel) {

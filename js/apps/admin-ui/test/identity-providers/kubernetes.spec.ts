@@ -32,6 +32,12 @@ test.describe.serial("Kubernetes identity provider test", () => {
     await page
       .getByTestId("config.issuer")
       .fill("https://kubernetes2.myorg.com");
+    await expect(
+      page.locator("#kubernetesUseDynamicIssuerResolution"),
+    ).toBeChecked();
+    await expect(
+      page.locator("#kubernetesIncludeServiceAccountToken"),
+    ).not.toBeChecked();
 
     await clickSaveButton(page);
 

@@ -6,13 +6,16 @@ A Kubernetes identity provider supports authenticating clients with Kubernetes s
 
 This feature can be enabled and disabled with the feature `kubernetes-service-accounts` which is enabled by default. It depends on the feature `client-auth-federated` which is enabled by default as well.
 
-The default issuer URL for a Kubernetes cluster is `\https://kubernetes.default.svc.cluster.local`. You can discover
-this value by decoding a service account token to retrieve the value of the `iss` claim.
+The default Kubernetes API server URL for a Kubernetes cluster is `\https://kubernetes.default.svc.cluster.local`.
+On managed Kubernetes clusters such as EKS, GKE, or AKS, service account tokens can use a cloud-managed OIDC issuer
+instead of the Kubernetes API server URL. By default, {project_name} loads `<ISSUER>/.well-known/openid-configuration`
+and validates tokens against the issuer returned by that discovery document.
 
 Keycloak must be able to invoke the endpoint `<ISSUER>/.well-known/openid-configuration` and additionally the
-JWKS endpoint returned in the well-known configuration. By default, these endpoints require authentication with a
-service account token. {project_name} will automatically use the token from `/var/run/secrets/kubernetes.io/serviceaccount/token`
-if available and the token issuer matches the configured issuer.
+JWKS endpoint returned by the discovered issuer. If the discovery or JWKS endpoint requires authentication with a
+service account token, enable *Include service account token in requests*. When enabled, {project_name} uses the token
+from `/var/run/secrets/kubernetes.io/serviceaccount/token` if available and forwards it only when the token issuer
+matches the issuer advertised by the discovery document.
 
 Each identity provider must have a unique issuer. Each client must also have a unique subject identifier for each
 issuer. As the subject identifier is built from the namespace and service account name, each client must have its own
@@ -39,7 +42,13 @@ and make sure tokens can not be intercepted in communication between the client 
 |The alias for the identity provider is used to link a client to the provider
 
 |Kubernetes Issuer URL
-|The issuer URL of service account tokens. The URL `<ISSUER>.well-known/openid-configuration` must be available to {project_name})
+|The Kubernetes issuer or API server URL. The URL `<ISSUER>/.well-known/openid-configuration` must be available to {project_name}.
+
+|Use dynamic issuer resolution
+|Loads the Kubernetes OpenID Connect discovery document and validates service account tokens against the issuer returned by that document. Disable this only when the configured issuer must be used directly.
+
+|Include service account token in requests
+|Forwards the mounted service account token to discovery and JWKS requests when the token was issued by the provider. Most managed clusters do not require this option.
 
 |===
 +
